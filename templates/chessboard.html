@@ -1,0 +1,122 @@
+
+<link rel="stylesheet" href="static/css/chessboard-1.0.0.min.css"></link>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+<style>
+  .hidden {
+      display: none;
+   }
+  #results-container {
+     font-size: 28pt;
+   }
+  .suggested-next-move {
+     color: #006a4e;
+   }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+        crossorigin="anonymous"></script>
+
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
+         integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD"
+         crossorigin="anonymous"></script>
+
+  <div class="container-fluid">
+    <br>
+    <h1 style="text-align:center"> Find Your Next Chess Move </h1>
+    <div class="row">
+       <div class="col-lg-6">
+         <br>
+         <h3 style="text-align:center"> Set Up Your Chessboard: </h3>
+         <div id="board2" style="margin-left: auto;margin-right:auto;width:420px"></div>
+       </div>
+       <div class="col-lg-6">
+         <br>
+         <h3 style="text-align:left"> Board Settings:</h3>
+         <button id="startBtn" class="btn btn-primary btn-lg">Set To Start Position</button>
+         <button id="clearBtn" class="btn btn-primary btn-lg">Clear Board</button>
+         <br><br><br>
+         <h3 style="text-align:left"> Player Selection:</h3>
+         <input type="button" value = "White" class="user btn color-button btn-light btn-lg" data-name="White">
+         <input type="button" value = "Black" class="user btn color-button btn-dark btn-lg" data-name="Black">
+         <br><br><br>
+        <h3 style="text-align:left"> Recommendation Options:</h3>
+        <button data-algorithm="Random Move" class="showPositionBtn btn btn-secondary btn-lg">Random</button>
+        <button data-algorithm="Min Max" class="showPositionBtn btn btn-secondary btn-lg">Minimax</button>
+        <button data-algorithm="Neural Network" class="showPositionBtn btn btn-secondary btn-lg">Neural Network</button>
+        <br><br><br>
+        <div class="hidden" id="results-container">
+          <p class="suggested-next-move-wrapper">Your Recommended Move Is:
+            <span class="suggested-next-move"></span> <br>
+            Selected Algorithm: <span class="algorithm-choice"></span>
+            <br> Player: <span id="insert"></span>
+          </p>
+        </div>
+      </div>
+   </div>
+ </div>
+ <script>
+
+
+
+ $(document).ready(function() {
+   var config = {
+   pieceTheme: 'static/img/chesspieces/wikipedia/{piece}.png',
+   draggable: true,
+   dropOffBoard: 'trash',
+   sparePieces: true,
+   position: 'start'
+  }
+
+   var board2 = Chessboard('board2', config)
+
+   var user = 'White';
+   $(".user").click(function() {
+          user = $(this).attr("data-name");
+          player = user.toLowerCase().substr(0,1);
+          document.getElementById("insert").innerHTML = user;
+       });
+
+
+   function clickShowPositionBtn () {
+
+     var currentPosition = board2.fen() + ' ' + player
+
+     console.log('Current position as a FEN string:')
+     console.log(currentPosition)
+
+     fetch("/nextmove", {
+        method: "post",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify({
+          currentBoardPosition: currentPosition,
+          algorithm: this.dataset.algorithm,
+        })
+      })
+      .then(response => response.json())
+      .then(function(data){
+        $('.suggested-next-move').text(data['nextMove'])
+        $('.algorithm-choice').text(data['algorithm'])
+        $('#results-container').removeClass("hidden");
+      });
+   }
+
+  function clearRecommendation() {
+    $('#results-container').addClass("hidden");
+  }
+
+   $('#startBtn').on('click', board2.start)
+   $('#clearBtn').on('click', board2.clear)
+   $('.color-button').on('click', clearRecommendation)
+   $('.showPositionBtn').on('click', clickShowPositionBtn)
+
+
+  });
+</script>
+<!--
+<body>the fen is : <span> id='boardfen' </span> </body>
+-->
